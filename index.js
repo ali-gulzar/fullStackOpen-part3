@@ -44,7 +44,7 @@ app.delete('/api/persons/:id', (request, response) => {
   }).catch(error => console.log(error))
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const person = request.body;
   if (!person.name) {
     response.json({error: 'Please define person name'}).status(403).end()
@@ -57,7 +57,7 @@ app.post('/api/persons', (request, response) => {
   })
   personDB.save().then(savedPerson => {
     response.json(savedPerson)
-  })
+  }).catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (request, response) => {
@@ -77,9 +77,12 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint);
 
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
-  if (error.name === 'CastError') {
+  if (error.name === "CastError") {
     return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === "ValidationError") {
+    console.log("There is a validation error")
+    console.log(error.errors.name.properties.message)
+    return response.send({ error: error.errors.name.properties.message }).status(404)
   }
   next(error)
 }
